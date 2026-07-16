@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel — Quem falta responder</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+  :root{
+    --red: #d2232a;
+    --black: #1a1a1a;
+    --bg: #f5f5f5;
+    --card: #ffffff;
+    --line: #e0e0e0;
+    --text: #202124;
+    --text-dim: #5f6368;
+    --green: #1e8e3e;
+    --yellow: #b26a00;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    font-family:'Google Sans',Roboto,Arial,-apple-system,"Segoe UI",sans-serif;
+    color:var(--text);
+    min-height:100vh;
+    padding-bottom:2.5rem;
+  }
+  header{
+    background:var(--black);
+    color:#fff;
+    padding:1.1rem 1.25rem 1rem;
+    position:relative;
+  }
+  header::after{
+    content:"";
+    display:block;
+    height:4px;
+    background:var(--red);
+    position:absolute;
+    left:0;right:0;bottom:0;
+  }
+  header h1{
+    margin:0;
+    font-size:1.15rem;
+    font-weight:700;
+    letter-spacing:.2px;
+  }
+  header p{
+    margin:.25rem 0 0;
+    font-size:.8rem;
+    color:#cfcfcf;
+  }
+  .wrap{
+    max-width:640px;
+    margin:0 auto;
+    padding:1rem;
+  }
+  .config{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:.9rem 1rem;
+    margin-bottom:1rem;
+  }
+  .config summary{
+    cursor:pointer;
+    font-weight:600;
+    font-size:.9rem;
+    color:var(--text-dim);
+  }
+  .config .fields{
+    margin-top:.8rem;
+    display:flex;
+    flex-direction:column;
+    gap:.6rem;
+  }
+  .config label{
+    font-size:.78rem;
+    color:var(--text-dim);
+    display:block;
+    margin-bottom:.2rem;
+  }
+  .config input{
+    width:100%;
+    padding:.55rem .6rem;
+    border:1px solid var(--line);
+    border-radius:8px;
+    font-size:.9rem;
+  }
+  .config button{
+    align-self:flex-start;
+    background:var(--black);
+    color:#fff;
+    border:none;
+    border-radius:8px;
+    padding:.5rem 1rem;
+    font-size:.85rem;
+    cursor:pointer;
+  }
+  .banner{
+    border-radius:12px;
+    padding:1rem 1.1rem;
+    margin-bottom:1rem;
+    color:#fff;
+    font-weight:600;
+    font-size:1rem;
+    display:flex;
+    align-items:center;
+    gap:.6rem;
+  }
+  .banner.calm{ background:var(--green); }
+  .banner.warn{ background:var(--yellow); }
+  .banner.urgent{ background:var(--red); }
+  .banner.neutral{ background:#6b7076; }
+  .summary-row{
+    display:flex;
+    gap:.6rem;
+    margin-bottom:1rem;
+  }
+  .stat{
+    flex:1;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:.8rem;
+    text-align:center;
+  }
+  .stat .n{ font-size:1.6rem; font-weight:700; }
+  .stat .l{ font-size:.72rem; color:var(--text-dim); margin-top:.15rem; }
+  .stat.ok .n{ color:var(--green); }
+  .stat.pending .n{ color:var(--red); }
+  .list-title{
+    font-size:.85rem;
+    font-weight:700;
+    color:var(--text-dim);
+    text-transform:uppercase;
+    letter-spacing:.4px;
+    margin:0 0 .5rem 2px;
+  }
+  .missing-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
+    gap:.6rem;
+    margin-bottom:1.2rem;
+  }
+  .missing-card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-left:4px solid var(--red);
+    border-radius:8px;
+    padding:.6rem .7rem;
+    font-size:.85rem;
+    font-weight:600;
+  }
+  .done-note{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-left:4px solid var(--green);
+    border-radius:8px;
+    padding:.9rem 1rem;
+    font-size:.9rem;
+    color:var(--text-dim);
+  }
+  .refresh-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:1.2rem;
+    font-size:.75rem;
+    color:var(--text-dim);
+  }
+  .refresh-row button{
+    background:none;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:.4rem .8rem;
+    font-size:.8rem;
+    cursor:pointer;
+    color:var(--text);
+  }
+  .error-box{
+    background:#fdecea;
+    border:1px solid #f5c2bd;
+    color:#8a1f13;
+    border-radius:10px;
+    padding:.9rem 1rem;
+    font-size:.85rem;
+    margin-bottom:1rem;
+  }
+  .loading{
+    color:var(--text-dim);
+    font-size:.85rem;
+    padding:1rem 0;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Pré-Treino — Quem falta responder</h1>
+  <p>Atlético Goianiense · painel interno</p>
+</header>
+
+<div class="wrap">
+
+  <details class="config" id="configBox">
+    <summary>Configuração</summary>
+    <div class="fields">
+      <div>
+        <label for="csvUrl">Link CSV da planilha (Publicar na web)</label>
+        <input type="text" id="csvUrl" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=csv">
+      </div>
+      <div>
+        <label for="trainTime">Horário do treino de hoje</label>
+        <input type="time" id="trainTime">
+      </div>
+      <button onclick="saveConfig()">Salvar</button>
+    </div>
+  </details>
+
+  <div id="content">
+    <div class="loading">Carregando respostas de hoje…</div>
+  </div>
+
+  <div class="refresh-row">
+    <span id="lastUpdated"></span>
+    <button onclick="loadData()">Atualizar agora</button>
+  </div>
+
+</div>
+
+<script>
+const ROSTER = ["ADRIANO 1997","ASSIS 2001","BEBETO 2006","BRENO 2007","BRUNO JOSÉ 1998",
+  "COUTINHO 1999","CRISTIANO 2000","EWERTHON 2000","FELIPE GUIMARÃES 2004",
+  "GABRIEL LIMA 2005","GABRIEL PAÉ 2007","GEOVANE 1989","GEOVANY 2000",
+  "GUILHERME L. 2002","GUILHERME M. 1991","GUSTAVO 2005","HENRIQUE 1999",
+  "IGOR H. 1991","JOÃO PEDRO 1996","JUNIOR 1998","KAUAN 2007","KLEBERT 2008",
+  "LEANDRO VILELA 1995","LÉO JACÓ 2005","LEONARDO 2002","MARRONY 1999",
+  "MATHEUS ÍNDIO 1999","NATÃ 2001","NETINHO 1997","PAULINHO 1994",
+  "PAULO VITOR 1988","PEDRINHO 2008","PEIXOTO 1997","TITO 2000",
+  "TOCANTINS 1999","VLADIMIR 1989","YURI 2008"];
+
+function loadConfig(){
+  document.getElementById('csvUrl').value = localStorage.getItem('csvUrl') || '';
+  document.getElementById('trainTime').value = localStorage.getItem('trainTime') || '';
+}
+function saveConfig(){
+  localStorage.setItem('csvUrl', document.getElementById('csvUrl').value.trim());
+  localStorage.setItem('trainTime', document.getElementById('trainTime').value);
+  document.getElementById('configBox').removeAttribute('open');
+  loadData();
+}
+
+function normalize(s){
+  return (s||'').trim().toUpperCase();
+}
+
+function findKey(row, patterns){
+  const keys = Object.keys(row);
+  for(const p of patterns){
+    const hit = keys.find(k => k.toLowerCase().includes(p));
+    if(hit) return hit;
+  }
+  return null;
+}
+
+function parseTimestampToDate(raw){
+  if(!raw) return null;
+  // Google Forms pt-BR timestamp: "15/07/2026 14:32:10" or with "às"
+  const cleaned = raw.replace(' às ', ' ').trim();
+  const [datePart, timePart] = cleaned.split(' ');
+  if(!datePart) return null;
+  const [d, m, y] = datePart.split('/').map(Number);
+  if(!d || !m || !y) return null;
+  let hh=0, mm=0, ss=0;
+  if(timePart){
+    const t = timePart.split(':').map(Number);
+    hh = t[0]||0; mm = t[1]||0; ss = t[2]||0;
+  }
+  return new Date(y, m-1, d, hh, mm, ss);
+}
+
+function isToday(d){
+  if(!d) return false;
+  const now = new Date();
+  return d.getFullYear()===now.getFullYear() &&
+         d.getMonth()===now.getMonth() &&
+         d.getDate()===now.getDate();
+}
+
+function renderBanner(missingCount, trainTimeStr){
+  const el = document.getElementById('banner') || document.createElement('div');
+  el.id = 'banner';
+  el.className = 'banner';
+
+  if(missingCount === 0){
+    el.classList.add('calm');
+    el.textContent = 'Todo mundo respondeu. Pode liberar o treino tranquilo.';
+    return el;
+  }
+
+  if(!trainTimeStr){
+    el.classList.add('neutral');
+    el.textContent = missingCount + ' atleta(s) ainda não responderam hoje.';
+    return el;
+  }
+
+  const [hh, mm] = trainTimeStr.split(':').map(Number);
+  const now = new Date();
+  const train = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm, 0);
+  const diffMin = Math.round((train - now) / 60000);
+
+  if(diffMin <= 0){
+    el.classList.add('urgent');
+    el.textContent = 'O treino já começou e ' + missingCount + ' atleta(s) não responderam!';
+  } else if(diffMin <= 30){
+    el.classList.add('urgent');
+    el.textContent = 'Faltam ' + diffMin + ' min pro treino — ' + missingCount + ' atleta(s) ainda não responderam!';
+  } else if(diffMin <= 90){
+    el.classList.add('warn');
+    el.textContent = 'Faltam ' + diffMin + ' min pro treino — ' + missingCount + ' atleta(s) ainda faltam.';
+  } else {
+    el.classList.add('calm');
+    el.textContent = 'Treino em ' + diffMin + ' min. ' + missingCount + ' atleta(s) ainda não responderam — dá tempo.';
+  }
+  return el;
+}
+
+async function loadData(){
+  const content = document.getElementById('content');
+  const csvUrl = localStorage.getItem('csvUrl');
+  const trainTime = localStorage.getItem('trainTime');
+
+  if(!csvUrl){
+    content.innerHTML = '<div class="error-box">Cole o link CSV da planilha em "Configuração" acima pra começar.</div>';
+    return;
+  }
+
+  content.innerHTML = '<div class="loading">Carregando respostas de hoje…</div>';
+
+  let rows;
+  try{
+    const res = await fetch(csvUrl, {cache:'no-store'});
+    if(!res.ok) throw new Error('status ' + res.status);
+    const text = await res.text();
+    const parsed = Papa.parse(text, {header:true, skipEmptyLines:true});
+    rows = parsed.data;
+  }catch(err){
+    content.innerHTML = '<div class="error-box">Não consegui carregar a planilha. Confira se o link CSV está certo e se a planilha está publicada na web. (' + err.message + ')</div>';
+    return;
+  }
+
+  if(!rows.length){
+    content.innerHTML = '<div class="error-box">A planilha carregou, mas está vazia.</div>';
+    return;
+  }
+
+  const nameKey = findKey(rows[0], ['nome']);
+  const tsKey = findKey(rows[0], ['carimbo', 'timestamp']);
+
+  if(!nameKey){
+    content.innerHTML = '<div class="error-box">Não encontrei a coluna de nome do atleta na planilha.</div>';
+    return;
+  }
+
+  const respondedToday = new Set();
+  rows.forEach(r => {
+    const ts = tsKey ? parseTimestampToDate(r[tsKey]) : null;
+    const okDate = tsKey ? isToday(ts) : true;
+    if(okDate && r[nameKey]){
+      respondedToday.add(normalize(r[nameKey]));
+    }
+  });
+
+  const missing = ROSTER.filter(name => !respondedToday.has(normalize(name)));
+  const doneCount = ROSTER.length - missing.length;
+
+  const banner = renderBanner(missing.length, trainTime);
+
+  let html = '';
+  html += '<div class="summary-row">';
+  html += '  <div class="stat ok"><div class="n">' + doneCount + '</div><div class="l">responderam</div></div>';
+  html += '  <div class="stat pending"><div class="n">' + missing.length + '</div><div class="l">faltam</div></div>';
+  html += '  <div class="stat"><div class="n">' + ROSTER.length + '</div><div class="l">elenco total</div></div>';
+  html += '</div>';
+
+  if(missing.length === 0){
+    html += '<div class="done-note">Todos os ' + ROSTER.length + ' atletas já preencheram o check-in de hoje.</div>';
+  } else {
+    html += '<div class="list-title">Ainda não responderam (' + missing.length + ')</div>';
+    html += '<div class="missing-grid">';
+    missing.forEach(name => {
+      html += '<div class="missing-card">' + name + '</div>';
+    });
+    html += '</div>';
+  }
+
+  content.innerHTML = '';
+  content.appendChild(banner);
+  content.insertAdjacentHTML('beforeend', html);
+
+  document.getElementById('lastUpdated').textContent =
+    'Atualizado às ' + new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+}
+
+loadConfig();
+loadData();
+setInterval(loadData, 60000);
+</script>
+
+</body>
+</html>
