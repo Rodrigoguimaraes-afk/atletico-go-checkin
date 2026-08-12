@@ -1,0 +1,25 @@
+{
+  "name": "Atlético GO - Pré-Treino",
+  "short_name": "Pré-Treino ACG",
+  "description": "Check-in de bem-estar pré-treino do Atlético Goianiense",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f0ebf8",
+  "theme_color": "#1a1a1a",
+  "icons": [
+    {
+      "src": "icon-512.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
